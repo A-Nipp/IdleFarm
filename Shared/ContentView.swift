@@ -7,26 +7,37 @@
 
 import SwiftUI
 
-class Game {
-    var plots: Array<FarmPlot>
-    init() {
-        plots = [FarmPlot]()
+struct GameSettings {
+    static let maxTileWidth = 100.0
+    static let maxTileHeight = 100.0
+}
+struct ContentView: View {
+    static let timeDelta = 0.1
+    let animals = [Animal(name: "Chicken", multiplier: 1), Animal(name: "Cow", multiplier: 2)]
+    
+    @State var currentMoney = 0.0
+    @State var currentDate = Date()
+    @State var animalCount = 0
+    @State var animalType = 0
+    
+    var plots: [FarmPlot] {
+        var plots = [FarmPlot]()
         for _ in 0...8 {
             plots.append(FarmPlot())
         }
+        return plots
     }
-}
 
-struct ContentView: View {
-    @State var currentMoney = 0.0
-    @State var moneyPerIncrement = 1.0
-    @State var currentDate = Date()
-    @State var animalCount = 0
+    
+    var moneyPerIncrement: Double {
+        return Double(animalCount) * animals[animalType].multiplier
+    }
+    
+
     
     
-    static let timeDelta = 0.1
-    
-    let timer = Timer.publish(every: timeDelta, on: .main, in: .common).autoconnect()
+    let timer = Timer.publish(every: ContentView.timeDelta, on: .main, in: .common).autoconnect()
+
     
     var body: some View {
         ZStack {
@@ -36,15 +47,23 @@ struct ContentView: View {
                 Text("$\(currentMoney)")
                     .font(.largeTitle)
                     .onReceive(timer) { input in
-                        currentMoney += moneyPerIncrement * ContentView.timeDelta
+                        updateGame(currentTime: input)
                     }
                 Spacer()
-                PlotGrid()
+                PlotGrid(plots: plots)
                 Spacer()
-                BottomPane()
+                BottomPane(animalCount: $animalCount)
             }
         }
     }
+    
+    func updateGame(currentTime: Date) {
+        currentMoney += moneyPerIncrement * ContentView.timeDelta
+    }
+    
+//    func updateGame(currentTime: Date) {
+//        game.update(currentTime)
+//    }
 }
 
 struct ContentView_Previews: PreviewProvider {
@@ -54,28 +73,54 @@ struct ContentView_Previews: PreviewProvider {
 }
 
 struct PlotGrid: View {
+    var plots: [FarmPlot]
     var body: some View {
         VStack {
             HStack {
-                Button("0") {}
-                Button("1") {}
-                Button("2") {}
+                PlotButton(plot: plots[0])
+                PlotButton(plot: plots[1])
+                PlotButton(plot: plots[2])
             }
             HStack {
-                Button("3") {}
-                Button("4") {}
-                Button("5") {}
+                PlotButton(plot: plots[3])
+                Button{
+                    
+                } label: {
+                    Image("Barn_icon")
+                    .resizable()
+                    .frame(maxWidth: GameSettings.maxTileWidth, maxHeight: GameSettings.maxTileHeight)
+                }
+                PlotButton(plot: plots[5])
             }
             HStack {
-                Button("6") {}
-                Button("7") {}
-                Button("8") {}
+                PlotButton(plot: plots[6])
+                PlotButton(plot: plots[7])
+                PlotButton(plot: plots[8])
             }
         }
     }
 }
 
+struct Animal {
+    var name: String
+    var multiplier: Double
+}
+
+struct PlotButton: View {
+    var plot: FarmPlot
+    var body: some View {
+        Button {
+            plot.harvest()
+        } label: {
+            Text(plot.toString())
+        }
+        .frame(maxWidth: GameSettings.maxTileWidth, maxHeight: GameSettings.maxTileHeight)
+        .foregroundColor(Color.white)
+        .background(Color.black)
+    }
+}
 struct BottomPane: View {
+    @Binding var animalCount: Int
     var body: some View {
         HStack {
             Button {
@@ -83,7 +128,7 @@ struct BottomPane: View {
             } label: {
                 Image(systemName: "gear")
             }
-            BreedButton()
+            BreedButton(animalCount: $animalCount)
             
             Button {
                 //do something
@@ -96,28 +141,47 @@ struct BottomPane: View {
 }
 
 struct BreedButton: View {
+    @Binding var animalCount: Int
     var body: some View {
         Button("BREED") {
-            //Breed da animals
+            breedAnimals()
         }
+    }
+    func breedAnimals() {
+        animalCount += 1
     }
 }
 
+struct Crop {
+    var name: String
+    var timeToGrow: Int
+    var ticksToHarvest: Int
+}
+
+let crops = [Crop(name: "Wheat", timeToGrow: 5, ticksToHarvest: 10),
+             Crop(name: "Barley", timeToGrow: 10, ticksToHarvest: 15)
+]
 class FarmPlot {
-    static let levelProgressionLabels = ["Wheat", "Barley", "Soy", "Hemp"]
-    static let timeToHarvestArray = [5, 10, 15, 20]
     
     var level: Int
     var dateLastHarvested: Date
     var growthPeriod: DateComponents
+    var currentCrop: Crop
     var isReadyToHarvest: Bool
+    var isHarvesting: Bool
+    var harvestRate: Int
+    var ticksToHarvest: Int
     
     init() {
         level = 0
+        currentCrop = crops[level]
         dateLastHarvested = Date()
         growthPeriod = DateComponents()
-        growthPeriod.second = FarmPlot.timeToHarvestArray[level]
+        growthPeriod.second = currentCrop.timeToGrow
         isReadyToHarvest = false
+        isHarvesting = false
+        harvestRate = 1
+        ticksToHarvest = currentCrop.ticksToHarvest
     }
     
     
@@ -127,10 +191,18 @@ class FarmPlot {
     }
     
     func toString() -> String {
-        return FarmPlot.levelProgressionLabels[level]
+        return crops[level].name
     }
     func upgrade() -> Void {
         level += 1
+    }
+    func update(currentDate: Date) -> Void {
+        if isReadyToHarvest{
+            // don't check for harvest
+        }
+        else {
+            checkForHarvest(currentDate: currentDate)
+        }
     }
     func checkForHarvest(currentDate: Date) -> Void {
         let harvestDate = Calendar.current.date(byAdding: growthPeriod, to: currentDate)
@@ -139,6 +211,12 @@ class FarmPlot {
         }
         else {
             isReadyToHarvest = false
+        }
+    }
+    func harvest() {
+        // Do nothing yet
+        if isReadyToHarvest {
+            
         }
     }
 }
