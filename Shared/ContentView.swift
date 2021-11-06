@@ -7,6 +7,16 @@
 
 import SwiftUI
 
+class Game {
+    var plots: Array<FarmPlot>
+    init() {
+        plots = [FarmPlot]()
+        for _ in 0...8 {
+            plots.append(FarmPlot())
+        }
+    }
+}
+
 struct ContentView: View {
     @State var currentMoney = 0.0
     @State var moneyPerIncrement = 1.0
@@ -20,6 +30,8 @@ struct ContentView: View {
     
     var body: some View {
         ZStack {
+            Color.green
+                .ignoresSafeArea()
             VStack{
                 Text("$\(currentMoney)")
                     .font(.largeTitle)
@@ -99,6 +111,7 @@ class FarmPlot {
     var dateLastHarvested: Date
     var growthPeriod: DateComponents
     var isReadyToHarvest: Bool
+    
     init() {
         level = 0
         dateLastHarvested = Date()
