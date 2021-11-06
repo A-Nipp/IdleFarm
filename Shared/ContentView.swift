@@ -9,15 +9,23 @@ import SwiftUI
 
 struct ContentView: View {
     @State var currentMoney = 0.0
-    @State var moneyDelta = 1
+    @State var moneyPerIncrement = 1.0
+    @State var currentDate = Date()
+    @State var animalCount = 0
     
-    let timeIncrement = 0.1
+    
+    static let timeDelta = 0.1
+    
+    let timer = Timer.publish(every: timeDelta, on: .main, in: .common).autoconnect()
     
     var body: some View {
         ZStack {
             VStack{
                 Text("$\(currentMoney)")
                     .font(.largeTitle)
+                    .onReceive(timer) { input in
+                        currentMoney += moneyPerIncrement * ContentView.timeDelta
+                    }
                 Spacer()
                 PlotGrid()
                 Spacer()
