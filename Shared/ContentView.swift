@@ -90,3 +90,42 @@ struct BreedButton: View {
         }
     }
 }
+
+class FarmPlot {
+    static let levelProgressionLabels = ["Wheat", "Barley", "Soy", "Hemp"]
+    static let timeToHarvestArray = [5, 10, 15, 20]
+    
+    var level: Int
+    var dateLastHarvested: Date
+    var growthPeriod: DateComponents
+    var isReadyToHarvest: Bool
+    init() {
+        level = 0
+        dateLastHarvested = Date()
+        growthPeriod = DateComponents()
+        growthPeriod.second = FarmPlot.timeToHarvestArray[level]
+        isReadyToHarvest = false
+    }
+    
+    
+    
+    func getIncomePerHarvest() -> Double {
+        return Double(pow(10, Double(level)))
+    }
+    
+    func toString() -> String {
+        return FarmPlot.levelProgressionLabels[level]
+    }
+    func upgrade() -> Void {
+        level += 1
+    }
+    func checkForHarvest(currentDate: Date) -> Void {
+        let harvestDate = Calendar.current.date(byAdding: growthPeriod, to: currentDate)
+        if currentDate > harvestDate! {
+            isReadyToHarvest = true
+        }
+        else {
+            isReadyToHarvest = false
+        }
+    }
+}
